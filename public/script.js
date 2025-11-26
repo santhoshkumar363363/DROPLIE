@@ -1,91 +1,187 @@
+// script.js (copy-paste exact)
 const socket = io();
-let localStream;
-let peerConnection;
-let joined = false; // prevents multiple joins
+let localStream = null;
+let pc = null;            // RTCPeerConnection (only one, since we support 1:1)
+let remoteId = null;      // the other peer's socket id
+let joinedRoom = null;
+let username = decodeURIComponent((new URLSearchParams(window.location.search)).get('user') || 'Guest');
 
 const config = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
-    {
-      urls: "turn:global.relay.metered.ca:80",
-      username: "openai",
-      credential: "openai"
-    }
+    // Metered TURN for tough NATs (helps reduce connectivity issues)
+    { urls: "turn:global.relay.metered.ca:80", username: "openai", credential: "openai" }
   ]
 };
 
-const localVideo = document.getElementById("localVideo");
-const remoteVideo = document.getElementById("remoteVideo");
-const roomInput = document.getElementById("roomInput");
-const joinBtn = document.getElementById("joinBtn");
-const msgInput = document.getElementById("msgInput");
-const sendBtn = document.getElementById("sendBtn");
-const messages = document.getElementById("messages");
+const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
+const roomInput = document.getElementById('roomInput');
+const joinBtn = document.getElementById('joinBtn');
+const leaveBtn = document.getElementById('leaveBtn');
+const msgInput = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+const messages = document.getElementById('messages');
+const loginDiv = document.getElementById('login');
+const chatUI = document.getElementById('chatUI');
 
-// Remove existing listeners before adding new ones → prevents duplicates
-socket.removeAllListeners();
+// show chat if logged in via ?user=
+if (window.location.search.includes('user=')) {
+  loginDiv.style.display = 'none';
+  chatUI.style.display = 'block';
+}
 
-joinBtn.onclick = async () => {
-  if (joined) return; // stop repeated joining
-  joined = true;
+// Helper: append chat line
+function appendChat(text, cls = '') {
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = text;
+  messages.appendChild(d);
+  messages.scrollTop = messages.scrollHeight;
+}
 
-  const roomId = roomInput.value.trim();
-  if (!roomId) return alert("Enter room ID");
+// Ensure we add event listeners only once
+(function wireButtons(){
+  joinBtn.addEventListener('click', startJoin);
+  leaveBtn.addEventListener('click', leaveRoom);
+  sendBtn.addEventListener('click', sendMessage);
+  msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+})();
 
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  localVideo.srcObject = localStream;
+// socket handlers — registered once
+socket.on('connect', () => {
+  console.log('socket connected', socket.id);
+});
 
-  socket.emit("join-room", roomId);
+socket.on('user-joined', async (data) => {
+  // someone else joined the room after you — store their id and create offer
+  if (!remoteId && data && data.id) {
+    remoteId = data.id;
+    appendChat(`${data.user || 'Stranger'} joined. Creating offer...`);
+    await createPeer(true);
+  }
+});
 
-  // Listeners — attached only once
-  socket.on("user-connected", (id) => startPeerConnection(id, true));
-  socket.on("signal", async ({ from, signal }) => handleSignal(from, signal));
+socket.on('offer', async ({ from, sdp }) => {
+  // peer sent an offer to us
+  remoteId = from;
+  if (!pc) await createPeer(false);      // create peer if missing
+  await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  socket.emit('answer', { to: from, sdp: pc.localDescription });
+});
 
-  socket.on("message", (msg) => {
-    messages.innerHTML += `<div>${msg}</div>`;
-    messages.scrollTop = messages.scrollHeight;
-  });
-};
+socket.on('answer', async ({ from, sdp }) => {
+  if (pc) {
+    await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+  }
+});
 
-sendBtn.onclick = () => {
-  const msg = msgInput.value;
-  if (!msg) return;
-  messages.innerHTML += `<div>You: ${msg}</div>`;
-  socket.emit("message", msg);
-  msgInput.value = "";
-};
+socket.on('ice-candidate', async ({ from, candidate }) => {
+  if (pc && candidate) {
+    try { await pc.addIceCandidate(candidate); } catch (e) { console.warn('Failed addIce', e); }
+  }
+});
 
-function startPeerConnection(id, isOffer) {
-  peerConnection = new RTCPeerConnection(config);
+socket.on('chat-message', ({ from, user, text }) => {
+  appendChat(`${user || 'Stranger'}: ${text}`);
+});
 
-  localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+socket.on('user-left', ({ id }) => {
+  if (id === remoteId) {
+    appendChat('Peer left the room.');
+    cleanupPeer();
+  }
+});
 
-  peerConnection.ontrack = (e) => {
-    remoteVideo.srcObject = e.streams[0];
+// start joining room
+async function startJoin() {
+  if (joinedRoom) return; // already joined
+  const room = roomInput.value.trim();
+  if (!room) return alert('Enter room ID');
+  joinedRoom = room;
+
+  // get media
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
+  } catch (e) {
+    alert('Could not get camera/mic: ' + e.message);
+    joinedRoom = null;
+    return;
+  }
+
+  // join server room
+  socket.emit('join-room', room, username);
+  appendChat('Joined room: ' + room);
+  joinBtn.style.display = 'none';
+  leaveBtn.style.display = 'inline-block';
+}
+
+// leave room & cleanup
+function leaveRoom() {
+  if (!joinedRoom) return;
+  // tell server implicitly by disconnecting from room via reload/leave
+  cleanupPeer();
+  if (localStream) {
+    localStream.getTracks().forEach(t => t.stop());
+    localStream = null;
+    localVideo.srcObject = null;
+  }
+  socket.disconnect(); // simpler: reconnect afterwards
+  setTimeout(() => location.reload(), 250); // reload resets socket and UI
+}
+
+// create peer connection and optionally create offer
+async function createPeer(isOffer) {
+  pc = new RTCPeerConnection(config);
+
+  // add local tracks
+  if (localStream) {
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
+
+  pc.ontrack = (ev) => {
+    remoteVideo.srcObject = ev.streams[0];
   };
 
-  peerConnection.onicecandidate = (e) => {
-    if (!e.candidate) {
-      socket.emit("signal", { to: id, signal: peerConnection.localDescription });
+  pc.onicecandidate = (ev) => {
+    if (ev.candidate && remoteId) {
+      socket.emit('ice-candidate', { to: remoteId, candidate: ev.candidate });
     }
   };
 
-  if (isOffer) {
-    peerConnection.createOffer().then(offer => {
-      peerConnection.setLocalDescription(offer);
-      socket.emit("signal", { to: id, signal: offer });
-    });
+  pc.onconnectionstatechange = () => {
+    console.log('pc state', pc.connectionState);
+    if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+      appendChat('Connection closed.');
+      cleanupPeer();
+    }
+  };
+
+  if (isOffer && remoteId) {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    socket.emit('offer', { to: remoteId, sdp: pc.localDescription });
   }
 }
 
-async function handleSignal(from, signal) {
-  if (!peerConnection) startPeerConnection(from, false);
-
-  await peerConnection.setRemoteDescription(signal);
-
-  if (signal.type === "offer") {
-    const answer = await peerConnection.createAnswer();
-    await peerConnection.setLocalDescription(answer);
-    socket.emit("signal", { to: from, signal: peerConnection.localDescription });
+// cleanup peer only (keep socket for chat)
+function cleanupPeer() {
+  if (pc) {
+    try { pc.close(); } catch (e) {}
+    pc = null;
   }
+  remoteId = null;
+  remoteVideo.srcObject = null;
+}
+ 
+// send chat message
+function sendMessage() {
+  const text = msgInput.value.trim();
+  if (!text || !joinedRoom) return;
+  appendChat(`You: ${text}`);
+  socket.emit('chat-message', { user: username, text }); // server will forward to others
+  msgInput.value = '';
 }
