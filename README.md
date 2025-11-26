@@ -1,17 +1,14 @@
-# DROPLIE
 # DROPLIE — Private Video Chat
+Password protected WebRTC chat.
 
 ## Features
-✔ WebRTC camera + audio  
-✔ Omegle style UI  
-✔ Dark theme  
-✔ Small local video + big remote video  
-✔ Password required (gunapvt)  
-✔ Messaging inside video room  
+✔ Big remote + small local video
+✔ Dark theme
+✔ Modern centered login Box
+✔ Chat messaging
+✔ Works on mobile + PC
+✔ Password = gunapvt
 
-## Setup
+## Commands
 npm install
 npm start
-
-Server runs on port 10000.
-Open browser: http://localhost:10000
