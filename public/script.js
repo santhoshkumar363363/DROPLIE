@@ -1,5 +1,7 @@
 const socket = io();
-let localStream, peerConnection;
+let localStream;
+let peerConnection;
+let joined = false; // prevents multiple joins
 
 const config = {
   iceServers: [
@@ -20,16 +22,13 @@ const msgInput = document.getElementById("msgInput");
 const sendBtn = document.getElementById("sendBtn");
 const messages = document.getElementById("messages");
 
-const chatDiv = document.getElementById("chat");
-const loginDiv = document.getElementById("login");
-
-// show chat page after login
-if (window.location.search.includes("user=")) {
-  loginDiv.style.display = "none";
-  chatDiv.style.display = "block";
-}
+// Remove existing listeners before adding new ones → prevents duplicates
+socket.removeAllListeners();
 
 joinBtn.onclick = async () => {
+  if (joined) return; // stop repeated joining
+  joined = true;
+
   const roomId = roomInput.value.trim();
   if (!roomId) return alert("Enter room ID");
 
@@ -38,21 +37,10 @@ joinBtn.onclick = async () => {
 
   socket.emit("join-room", roomId);
 
-  socket.on("user-connected", (id) => createPeer(id, true));
+  // Listeners — attached only once
+  socket.on("user-connected", (id) => startPeerConnection(id, true));
+  socket.on("signal", async ({ from, signal }) => handleSignal(from, signal));
 
-  socket.on("signal", async ({ from, signal }) => {
-    if (!peerConnection) createPeer(from, false);
-    await peerConnection.setRemoteDescription(signal);
-
-    if (signal.type === "offer") {
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      socket.emit("signal", { to: from, signal: peerConnection.localDescription });
-    }
-  });
-
-  // FIX → stop duplicate messages
-  socket.off("message");
   socket.on("message", (msg) => {
     messages.innerHTML += `<div>${msg}</div>`;
     messages.scrollTop = messages.scrollHeight;
@@ -67,11 +55,14 @@ sendBtn.onclick = () => {
   msgInput.value = "";
 };
 
-function createPeer(id, isOffer) {
+function startPeerConnection(id, isOffer) {
   peerConnection = new RTCPeerConnection(config);
+
   localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-  peerConnection.ontrack = (e) => remoteVideo.srcObject = e.streams[0];
+  peerConnection.ontrack = (e) => {
+    remoteVideo.srcObject = e.streams[0];
+  };
 
   peerConnection.onicecandidate = (e) => {
     if (!e.candidate) {
@@ -80,9 +71,21 @@ function createPeer(id, isOffer) {
   };
 
   if (isOffer) {
-    peerConnection.createOffer().then((offer) => {
+    peerConnection.createOffer().then(offer => {
       peerConnection.setLocalDescription(offer);
       socket.emit("signal", { to: id, signal: offer });
     });
+  }
+}
+
+async function handleSignal(from, signal) {
+  if (!peerConnection) startPeerConnection(from, false);
+
+  await peerConnection.setRemoteDescription(signal);
+
+  if (signal.type === "offer") {
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit("signal", { to: from, signal: peerConnection.localDescription });
   }
 }
