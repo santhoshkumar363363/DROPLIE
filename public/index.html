@@ -2,33 +2,35 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>DROPLIE • Video Chat</title>
+  <title>DROPLIE • Private Video Chat</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="loginScreen">
+<!-- Login Box -->
+<div id="loginBox">
   <h1>DROPLIE</h1>
-  <p>Enter username and password to begin</p>
+  <p class="sub">Private Video Chat</p>
   <input type="text" id="usernameInput" placeholder="Username">
   <input type="password" id="passwordInput" placeholder="Password">
   <button id="loginBtn">Start</button>
-  <p id="loginError" class="errorMsg">❌ Incorrect password</p>
+  <p id="loginError">Incorrect password</p>
 </div>
 
-<div id="mainScreen">
+<!-- Main UI -->
+<div id="mainUI">
   <div id="videoArea">
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localVideo" autoplay muted playsinline></video>
   </div>
 
-  <div id="controls">
+  <div id="roomUI">
     <input type="text" id="roomInput" placeholder="Room ID">
     <button id="joinBtn">Join</button>
     <button id="leaveBtn">Leave</button>
   </div>
 
-  <div id="chatSection">
+  <div id="chatArea">
     <div id="messages"></div>
     <input type="text" id="msgInput" placeholder="Write a message">
     <button id="sendBtn">Send</button>
