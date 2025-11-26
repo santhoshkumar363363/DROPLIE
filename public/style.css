@@ -9,18 +9,99 @@ body { margin: 0; font-family: Arial; }
 .error { color:red; }
 
 /* Video page */
-.video-page { background:#f7efe6; text-align:center; }
-#logoBar { background:white; border-bottom:3px solid #ff8800; padding:10px; }
-#logoBar h1 { margin:0; color:#ff8800; }
+body {
+  margin: 0;
+  background: #f2e7d9;
+  font-family: Arial;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
 
-#videoContainer { position:relative; width:100%; max-width:900px; margin:auto; margin-top:20px; height:340px; background:#777; border-radius:12px; }
-#remoteVideo { width:100%; height:100%; border-radius:12px; object-fit:cover; }
-#localVideo { width:26%; height:26%; position:absolute; bottom:12px; right:12px; border:3px solid white; border-radius:10px; transform:scaleX(-1); object-fit:cover; }
+#title {
+  font-size: 26px;
+  font-weight: bold;
+  padding: 10px;
+  color: #ff7a00;
+}
 
-#chatBox { width:100%; max-width:900px; margin:10px auto; background:white; height:220px; overflow-y:auto; border-radius:8px; padding:10px; }
-#chatBox p { margin:4px 0; background:#fff5dd; padding:6px; border-left:4px solid #ff8800; }
+#videoContainer {
+  width: 100%;
+  max-width: 900px;
+  height: 55vh;
+  background: #444;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+}
 
-#chatControls { max-width:900px; margin:auto; display:flex; gap:6px; padding:0 6px; }
-#chatControls input { flex:1; padding:10px; border-radius:6px; border:1px solid #888; }
-#sendBtn, #skipBtn { background:#1a73e8; border:none; padding:10px; border-radius:6px; color:white; font-weight:bold; }
-#leaveBtn { margin:15px auto; background:red; color:white; padding:12px; border:none; width:92%; max-width:500px; border-radius:8px; font-size:18px; }
+/* big friend video */
+#remoteVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: black;
+}
+
+/* small mirrored self video */
+#localVideo {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 28vw;
+  max-width: 150px;
+  aspect-ratio: 9/16;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid white;
+  transform: scaleX(-1);
+}
+
+#chatBox {
+  width: 100%;
+  max-width: 900px;
+  height: 28vh;
+  margin-top: 10px;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+#messages {
+  flex: 1;
+  padding: 8px;
+  overflow-y: auto;
+  font-size: 15px;
+}
+
+#chatControls {
+  display: flex;
+  border-top: 1px solid #ddd;
+}
+
+#messageInput {
+  flex: 1;
+  border: none;
+  padding: 10px;
+  font-size: 16px;
+  outline: none;
+}
+
+#sendBtn {
+  padding: 0 20px;
+  border: none;
+  background: #0275ff;
+  color: white;
+  font-size: 16px;
+}
+
+#leaveBtn {
+  margin-top: 12px;
+  padding: 12px 28px;
+  border: none;
+  background: #d90000;
+  color: white;
+  font-size: 18px;
+  border-radius: 8px;
+}
