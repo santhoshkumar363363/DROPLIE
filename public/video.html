@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DROPLIE Video Chat</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="video-page">
+
+<header id="logoBar">
+  <h1>DROPLIE</h1>
+</header>
+
+<div id="videoContainer">
+  <video id="remoteVideo" autoplay playsinline></video>
+  <video id="localVideo" autoplay muted playsinline></video>
+</div>
+
+<div id="chatBox"></div>
+
+<div id="chatControls">
+  <button id="skipBtn">Skip</button>
+  <input id="messageInput" placeholder="Type a message...">
+  <button id="sendBtn">Send</button>
+</div>
+
+<button id="leaveBtn">Leave Call</button>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
