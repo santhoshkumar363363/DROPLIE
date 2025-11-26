@@ -1,40 +1,74 @@
 const socket = io();
-const url = new URL(location.href);
-const room = url.searchParams.get("room");
-const username = localStorage.getItem("username");
-
-socket.emit("join-room", room, username);
-
-const pc = new RTCPeerConnection({ iceServers:[{ urls:"stun:stun.l.google.com:19302" }]});
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
-const chatBox = document.getElementById("chatBox");
+const messageInput = document.getElementById("messageInput");
+const sendBtn = document.getElementById("sendBtn");
+const messages = document.getElementById("messages");
+const leaveBtn = document.getElementById("leaveBtn");
 
-navigator.mediaDevices.getUserMedia({ video:true, audio:true }).then(stream => {
-  stream.getTracks().forEach(t => pc.addTrack(t, stream));
-  localVideo.srcObject = stream;
-});
+let pc;
+let localStream;
 
-pc.ontrack = e => remoteVideo.srcObject = e.streams[0];
-pc.onicecandidate = e => e.candidate && socket.emit("ice", e.candidate);
+async function startCall() {
+  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  localVideo.srcObject = localStream;
 
-socket.on("offer", async sdp => { await pc.setRemoteDescription(sdp); const ans = await pc.createAnswer(); await pc.setLocalDescription(ans); socket.emit("answer", ans); });
-socket.on("answer", sdp => pc.setRemoteDescription(sdp));
-socket.on("ice", c => pc.addIceCandidate(c));
+  pc = new RTCPeerConnection();
+  localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-async function call() {
+  pc.ontrack = e => {
+    remoteVideo.srcObject = e.streams[0];
+  };
+
+  socket.on("offer", async offer => {
+    await pc.setRemoteDescription(offer);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit("answer", answer);
+  });
+
+  socket.on("answer", async answer => {
+    await pc.setRemoteDescription(answer);
+  });
+
+  socket.on("candidate", async candidate => {
+    await pc.addIceCandidate(candidate);
+  });
+
+  pc.onicecandidate = e => {
+    if (e.candidate) socket.emit("candidate", e.candidate);
+  };
+
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   socket.emit("offer", offer);
 }
-setTimeout(call, 1000);
 
-document.getElementById("sendBtn").onclick = () => {
-  const msg = `${username}: ${messageInput.value}`;
+startCall();
+
+/* ---------------- CHAT ---------------- */
+sendBtn.addEventListener("click", () => {
+  let msg = messageInput.value.trim();
+  if (!msg) return;
   socket.emit("message", msg);
+  addMessage("You", msg);
   messageInput.value = "";
-};
-socket.on("message", msg => chatBox.innerHTML += `<p>${msg}</p>`);
+});
 
-document.getElementById("leaveBtn").onclick = () => location.href = "room.html";
-document.getElementById("skipBtn").onclick = () => location.href = "room.html";
+messageInput.addEventListener("keydown", e => {
+  if (e.key === "Enter") sendBtn.click();
+});
+
+socket.on("message", msg => addMessage("Friend", msg));
+
+function addMessage(user, msg) {
+  const p = document.createElement("p");
+  p.textContent = `${user}: ${msg}`;
+  messages.appendChild(p);
+  messages.scrollTop = messages.scrollHeight;
+}
+
+/* ----------- LEAVE CALL ------------- */
+leaveBtn.onclick = () => {
+  window.location.href = "/room";
+};
