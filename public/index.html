@@ -1,41 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>DROPLIE - Private Video Chat</title>
+  <meta charset="utf-8" />
+  <title>DROPLIE</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body { font-family: Arial; text-align: center; background:#f0f0f0; }
-    video { width: 300px; height: 200px; background: black; margin:5px; }
-    #localVideo { transform: scaleX(-1); } /* MIRROR VIEW FIX */
-    #messages { height:150px; overflow-y:scroll; border:1px solid #ccc; margin:10px; padding:5px; }
+    body { font-family: Arial, Helvetica, sans-serif; text-align:center; margin:0; padding:20px; background:#f6f6f6; }
+    h1 { margin:10px 0 20px; }
+    #videos { display:flex; justify-content:center; gap:10px; margin-bottom:10px; }
+    video { width:320px; height:240px; background:#000; }
+    #localVideo { transform: scaleX(-1); } /* mirror local */
+    #controls { margin:10px 0; }
+    #messages { width: 700px; max-width:94%; height:160px; margin:10px auto; overflow-y:auto; border:1px solid #ccc; background:#fff; padding:8px; text-align:left; }
+    #chatRow { display:flex; justify-content:center; gap:8px; margin-top:8px; }
+    input[type=text], input[type=password] { padding:6px; font-size:14px; }
+    button { padding:6px 10px; font-size:14px; cursor:pointer; }
+    @media(max-width:760px){ video{ width:45vw; height:34vw; } #messages{width:94%} }
   </style>
 </head>
 <body>
+  <h1>DROPLIE</h1>
 
-<h1>DROPLIE</h1>
-
-<div id="login">
-  <form action="/login" method="POST">
-    <input name="username" placeholder="Enter random username">
-    <input type="password" name="password" placeholder="Enter password">
-    <button type="submit">Enter</button>
-  </form>
-</div>
-
-<div id="chat" style="display:none;">
-  <video id="localVideo" autoplay muted></video>
-  <video id="remoteVideo" autoplay></video>
-
-  <div>
-    <input id="roomInput" placeholder="Room ID">
-    <button id="joinBtn">Join Room</button>
+  <div id="login">
+    <form action="/login" method="POST" style="display:inline-block;">
+      <input name="username" placeholder="Random username (optional)" />
+      <input type="password" name="password" placeholder="Password" />
+      <button type="submit">Enter</button>
+    </form>
   </div>
 
-  <div id="messages"></div>
-  <input id="msgInput" placeholder="Type a message">
-  <button id="sendBtn">Send</button>
-</div>
+  <div id="chatUI" style="display:none;">
+    <div id="videos">
+      <video id="localVideo" autoplay muted playsinline></video>
+      <video id="remoteVideo" autoplay playsinline></video>
+    </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="script.js"></script>
+    <div id="controls">
+      <input id="roomInput" type="text" placeholder="Room ID (type same as friend)" />
+      <button id="joinBtn">Join Room</button>
+      <button id="leaveBtn" style="display:none">Leave</button>
+    </div>
+
+    <div id="messages"></div>
+
+    <div id="chatRow">
+      <input id="msgInput" type="text" placeholder="Type a message" style="width:60%" />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
