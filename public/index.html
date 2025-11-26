@@ -1,40 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>DROPLIE • Private Video Chat</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DROPLIE</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Login Box -->
-<div id="loginBox">
-  <h1>DROPLIE</h1>
-  <p class="sub">Private Video Chat</p>
-  <input type="text" id="usernameInput" placeholder="Username">
-  <input type="password" id="passwordInput" placeholder="Password">
-  <button id="loginBtn">Start</button>
-  <p id="loginError">Incorrect password</p>
+<!-- PAGE 1 – LOGIN -->
+<div id="loginPage" class="center-box">
+    <h1>DROPLIE</h1>
+    <p>Private Video Chat</p>
+    <input id="userInput" placeholder="Username">
+    <input id="passInput" type="password" placeholder="Password">
+    <button id="loginBtn">Start</button>
+    <p id="loginError" class="error"></p>
 </div>
 
-<!-- Main UI -->
-<div id="mainUI">
-  <div id="videoArea">
-    <video id="remoteVideo" autoplay playsinline></video>
-    <video id="localVideo" autoplay muted playsinline></video>
-  </div>
+<!-- PAGE 2 – ROOM -->
+<div id="roomPage" class="center-box hidden">
+    <h2>Welcome <span id="userNameLabel"></span></h2>
+    <p>Enter room ID to connect</p>
+    <input id="roomInput" placeholder="Room ID">
+    <button id="joinRoomBtn">Join</button>
+</div>
 
-  <div id="roomUI">
-    <input type="text" id="roomInput" placeholder="Room ID">
-    <button id="joinBtn">Join</button>
-    <button id="leaveBtn">Leave</button>
-  </div>
+<!-- PAGE 3 – VIDEO CHAT -->
+<div id="callPage" class="hidden">
+    <div id="videoContainer">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <video id="localVideo" autoplay muted playsinline></video>
+    </div>
 
-  <div id="chatArea">
-    <div id="messages"></div>
-    <input type="text" id="msgInput" placeholder="Write a message">
-    <button id="sendBtn">Send</button>
-  </div>
+    <div id="chatBox"></div>
+
+    <div class="msg-box">
+        <input id="msgInput" placeholder="Write a message">
+        <button id="sendMsgBtn">Send</button>
+    </div>
+
+    <button id="leaveBtn" class="endCall">Leave Call</button>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
