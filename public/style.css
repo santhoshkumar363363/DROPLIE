@@ -1,0 +1,37 @@
+body {
+  margin: 0;
+  background: #0a0a0a;
+  font-family: Arial, sans-serif;
+  color: white;
+}
+
+/* Login Box */
+#loginBox {
+  width: 320px;
+  margin: 120px auto;
+  background: #111;
+  padding: 30px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 0 20px #0077ff55;
+}
+
+#loginBox input {
+  width: 90%;
+  padding: 10px;
+  margin: 8px;
+  border: none;
+  border-radius: 6px;
+}
+
+#loginBtn {
+  width: 90%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: none;
+  background: #0077ff;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  
