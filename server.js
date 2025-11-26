@@ -1,10 +1,18 @@
 const express = require("express");
+const path = require("path");
 const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http, { cors: { origin: "*" } });
 
-app.use(express.static(__dirname));
+// Serve public files
+app.use(express.static(path.join(__dirname, "public")));
 
+// Default route -> index.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// WebRTC + Chat
 io.on("connection", socket => {
   socket.on("join-room", room => socket.join(room));
 
