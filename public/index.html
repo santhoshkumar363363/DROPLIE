@@ -1,49 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DROPLIE</title>
-<link rel="stylesheet" href="style.css">
+  <title>DROPLIE Login</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
-
-<!-- PAGE 1 – LOGIN -->
-<div id="loginPage" class="center-box">
-    <h1>DROPLIE</h1>
-    <p>Private Video Chat</p>
-    <input id="userInput" placeholder="Username">
-    <input id="passInput" type="password" placeholder="Password">
-    <button id="loginBtn">Start</button>
-    <p id="loginError" class="error"></p>
+<body class="center-page">
+<div class="login-box">
+  <h2>DROPLIE</h2>
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">Start</button>
+  <p id="error" class="error"></p>
 </div>
+<script>
+function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
 
-<!-- PAGE 2 – ROOM -->
-<div id="roomPage" class="center-box hidden">
-    <h2>Welcome <span id="userNameLabel"></span></h2>
-    <p>Enter room ID to connect</p>
-    <input id="roomInput" placeholder="Room ID">
-    <button id="joinRoomBtn">Join</button>
-</div>
-
-<!-- PAGE 3 – VIDEO CHAT -->
-<div id="callPage" class="hidden">
-    <div id="videoContainer">
-        <video id="remoteVideo" autoplay playsinline></video>
-        <video id="localVideo" autoplay muted playsinline></video>
-    </div>
-
-    <div id="chatBox"></div>
-
-    <div class="msg-box">
-        <input id="msgInput" placeholder="Write a message">
-        <button id="sendMsgBtn">Send</button>
-    </div>
-
-    <button id="leaveBtn" class="endCall">Leave Call</button>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script src="script.js"></script>
+  if (password !== "gunapvt") {
+    document.getElementById("error").innerText = "Incorrect password ❌";
+    return;
+  }
+  localStorage.setItem("username", username);
+  window.location.href = "room.html";
+}
+</script>
 </body>
 </html>
