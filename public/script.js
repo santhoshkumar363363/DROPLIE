@@ -1,71 +1,122 @@
-const PASSWORD = "gunapvt";
 const socket = io();
-let peer, localStream, remoteStream;
 
-// Login
-document.getElementById("loginBtn").onclick = () => {
-  const u = usernameInput.value.trim();
-  const p = passwordInput.value.trim();
+const loginPage = document.getElementById("loginPage");
+const roomPage  = document.getElementById("roomPage");
+const callPage  = document.getElementById("callPage");
 
-  if (!u) return alert("Enter username");
-  if (p !== PASSWORD) return loginError.style.display = "block";
+const loginBtn  = document.getElementById("loginBtn");
+const joinRoomBtn = document.getElementById("joinRoomBtn");
+const leaveBtn = document.getElementById("leaveBtn");
+const sendMsgBtn = document.getElementById("sendMsgBtn");
 
-  loginBox.style.display = "none";
-  mainUI.style.display = "block";
+const userInput = document.getElementById("userInput");
+const passInput = document.getElementById("passInput");
+const roomInput = document.getElementById("roomInput");
+const msgInput  = document.getElementById("msgInput");
+
+const loginError = document.getElementById("loginError");
+const userNameLabel = document.getElementById("userNameLabel");
+const chatBox = document.getElementById("chatBox");
+
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+
+let username = "";
+let room = "";
+let localStream;
+let peer;
+
+// ---------------- LOGIN PAGE ----------------
+loginBtn.onclick = () => {
+    if (passInput.value !== "gunapvt") {
+        loginError.textContent = "Incorrect password";
+        return;
+    }
+    username = userInput.value.trim();
+    if (!username) return;
+
+    userNameLabel.textContent = username;
+    loginPage.classList.add("hidden");
+    roomPage.classList.remove("hidden");
 };
 
-// Join / Leave Room
-joinBtn.onclick = async () => {
-  const room = roomInput.value.trim();
-  if (!room) return alert("Enter room ID");
+// ---------------- ROOM PAGE ----------------
+joinRoomBtn.onclick = async () => {
+    room = roomInput.value.trim();
+    if (!room) return;
 
-  await startVideo();
-  socket.emit("join-room", room);
+    roomPage.classList.add("hidden");
+    callPage.classList.remove("hidden");
+
+    await startCall();
+    socket.emit("join-room", room);
 };
 
-leaveBtn.onclick = () => location.reload();
+// ---------------- LEAVE ----------------
+leaveBtn.onclick = () => {
+    if (peer) peer.close();
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
 
-// Chat
-sendBtn.onclick = () => {
-  const msg = msgInput.value.trim();
-  if (!msg) return;
-  addMsg("You", msg);
-  socket.emit("message", msg);
-  msgInput.value = "";
+    callPage.classList.add("hidden");
+    roomPage.classList.remove("hidden");
+
+    socket.emit("leave-room", room);
+    chatBox.innerHTML = "";
 };
 
-socket.on("message", msg => addMsg("Friend", msg));
+// ---------------- CALL INITIALIZATION ----------------
+async function startCall() {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    localVideo.srcObject = localStream;
 
-function addMsg(user, msg) {
-  messages.innerHTML += `<p><b>${user}:</b> ${msg}</p>`;
-  messages.scrollTop = messages.scrollHeight;
+    peer = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+    });
+
+    localStream.getTracks().forEach(t => peer.addTrack(t, localStream));
+    peer.ontrack = e => remoteVideo.srcObject = e.streams[0];
+    peer.onicecandidate = e => {
+        if (e.candidate) socket.emit("ice", { room, ice: e.candidate });
+    };
+
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+    socket.emit("offer", { room, offer });
 }
 
-// WebRTC
-async function startVideo() {
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  localVideo.srcObject = localStream;
+// ---------------- SOCKET LISTENERS ----------------
+socket.on("offer", async ({ offer }) => {
+    if (!peer) await startCall();
+    await peer.setRemoteDescription(new RTCSessionDescription(offer));
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(answer);
+    socket.emit("answer", { room, answer });
+});
 
-  peer = new RTCPeerConnection();
-  remoteStream = new MediaStream();
-  remoteVideo.srcObject = remoteStream;
+socket.on("answer", async ({ answer }) => {
+    await peer.setRemoteDescription(new RTCSessionDescription(answer));
+});
 
-  localStream.getTracks().forEach(t => peer.addTrack(t, localStream));
-  peer.ontrack = (e) => e.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
+socket.on("ice", async ({ ice }) => {
+    if (ice) await peer.addIceCandidate(new RTCIceCandidate(ice));
+});
 
-  peer.onicecandidate = e => e.candidate && socket.emit("ice", e.candidate);
-  socket.on("ice", c => peer.addIceCandidate(new RTCIceCandidate(c)));
+// ---------------- CHAT ----------------
+sendMsgBtn.onclick = () => {
+    const msg = msgInput.value.trim();
+    if (!msg) return;
+    appendMsg(`You: ${msg}`);
+    socket.emit("message", { room, user: username, msg });
+    msgInput.value = "";
+};
 
-  socket.on("offer", async offer => {
-    await peer.setRemoteDescription(offer);
-    const ans = await peer.createAnswer();
-    await peer.setLocalDescription(ans);
-    socket.emit("answer", ans);
-  });
+socket.on("message", ({ user, msg }) => {
+    appendMsg(`${user}: ${msg}`);
+});
 
-  socket.on("answer", ans => peer.setRemoteDescription(ans));
-
-  const offer = await peer.createOffer();
-  await peer.setLocalDescription(offer);
-  socket.emit("offer", offer);
+function appendMsg(text) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    chatBox.appendChild(p);
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
