@@ -1,34 +1,31 @@
 const express = require("express");
-const path = require("path");
 const app = express();
 const http = require("http").createServer(app);
-const io = require("socket.io")(http, { cors: { origin: "*" } });
+const io = require("socket.io")(http);
 
-// Serve public files
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static("public"));
 
-// Default route -> index.html
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(__dirname + "/public/index.html");
 });
 
-// WebRTC + Chat
-io.on("connection", socket => {
-  socket.on("join-room", room => socket.join(room));
+io.on("connection", (socket) => {
+  socket.on("join-room", (roomId, username) => {
+    socket.join(roomId);
+    socket.to(roomId).emit("user-joined", username);
 
-  socket.on("offer", offer =>
-    socket.to([...socket.rooms][1]).emit("offer", offer)
-  );
-  socket.on("answer", ans =>
-    socket.to([...socket.rooms][1]).emit("answer", ans)
-  );
-  socket.on("ice", ice =>
-    socket.to([...socket.rooms][1]).emit("ice", ice)
-  );
-  socket.on("message", msg =>
-    socket.to([...socket.rooms][1]).emit("message", msg)
-  );
+    socket.on("offer", data => socket.to(roomId).emit("offer", data));
+    socket.on("answer", data => socket.to(roomId).emit("answer", data));
+    socket.on("ice", data => socket.to(roomId).emit("ice", data));
+
+    socket.on("message", msg => io.to(roomId).emit("message", msg));
+
+    socket.on("disconnect", () => {
+      socket.to(roomId).emit("leave");
+    });
+  });
 });
 
-const PORT = process.env.PORT || 10000;
-http.listen(PORT, () => console.log(`DROPLIE running on ${PORT}`));
+http.listen(process.env.PORT || 3000, () =>
+  console.log("Server running...")
+);
