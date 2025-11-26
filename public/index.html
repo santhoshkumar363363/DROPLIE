@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DROPLIE - Private Video Chat</title>
+  <style>
+    body { font-family: Arial; text-align: center; background:#f0f0f0; }
+    video { width: 300px; height: 200px; background: black; margin:5px; }
+    #messages { height:150px; overflow-y:scroll; border:1px solid #ccc; margin:10px; padding:5px; }
+    #login { margin-top:50px; }
+  </style>
+</head>
+<body>
+
+<h1>DROPLIE</h1>
+
+<div id="login">
+  <form action="/login" method="POST">
+    <input name="username" placeholder="Enter random username">
+    <input type="password" name="password" placeholder="Enter password">
+    <button type="submit">Enter</button>
+  </form>
+</div>
+
+<div id="chat" style="display:none;">
+  <video id="localVideo" autoplay muted></video>
+  <video id="remoteVideo" autoplay></video>
+  <div>
+    <input id="roomInput" placeholder="Room ID">
+    <button id="joinBtn">Join Room</button>
+  </div>
+  <div id="messages"></div>
+  <input id="msgInput" placeholder="Type a message">
+  <button id="sendBtn">Send</button>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
