@@ -1,4 +1,4 @@
-// DROPLIE — FINAL BUILD (Optimized for mobile data + Chrome)
+// DROPLIE — 100% STABLE VERSION (Mobile + Chrome + 4G/5G optimized)
 const socket = io();
 let localStream = null;
 let pc = null;
@@ -20,25 +20,25 @@ const ICE_CONFIG = {
   ]
 };
 
-const localVideo = document.getElementById('localVideo');
-const remoteVideo = document.getElementById('remoteVideo');
-const roomInput = document.getElementById('roomInput');
-const joinBtn = document.getElementById('joinBtn');
-const leaveBtn = document.getElementById('leaveBtn');
-const msgInput = document.getElementById('msgInput');
-const sendBtn = document.getElementById('sendBtn');
-const messages = document.getElementById('messages');
-const loginDiv = document.getElementById('login');
-const chatUI = document.getElementById('chatUI');
+const localVideo = document.getElementById("localVideo");
+const remoteVideo = document.getElementById("remoteVideo");
+const joinBtn = document.getElementById("joinBtn");
+const leaveBtn = document.getElementById("leaveBtn");
+const roomInput = document.getElementById("roomInput");
+const msgInput = document.getElementById("msgInput");
+const sendBtn = document.getElementById("sendBtn");
+const messages = document.getElementById("messages");
+const loginDiv = document.getElementById("login");
+const chatUI = document.getElementById("chatUI");
 
-// show UI when authenticated
+// show chat if authenticated
 if (window.location.search.includes('user=')) {
   loginDiv.style.display = 'none';
   chatUI.style.display = 'block';
 }
 
 function chat(text) {
-  const d = document.createElement('div');
+  const d = document.createElement("div");
   d.textContent = text;
   messages.appendChild(d);
   messages.scrollTop = messages.scrollHeight;
@@ -46,9 +46,9 @@ function chat(text) {
 
 socket.on("connect", () => console.log("Connected:", socket.id));
 
-socket.on("user-joined", async ({ id, user }) => {
+socket.on("user-joined", ({ id, user }) => {
   remoteId = id;
-  chat(`${user || "Stranger"} joined.`);
+  chat(`${user || "Stranger"} joined the call.`);
   setTimeout(() => createPeer(true), 500);
 });
 
@@ -69,19 +69,18 @@ socket.on("ice-candidate", async ({ candidate }) => {
   if (pc && candidate) try { await pc.addIceCandidate(candidate); } catch {}
 });
 
-socket.on("chat-message", ({ user, text }) => {
-  chat(`${user}: ${text}`);
-});
+socket.on("chat-message", ({ user, text }) => chat(`${user}: ${text}`));
 
 socket.on("user-left", () => {
-  chat("User left the room.");
+  chat("User left the call.");
   cleanupPeer();
 });
 
+// JOIN ROOM
 joinBtn.onclick = async () => {
   if (joinedRoom) return;
   const room = roomInput.value.trim();
-  if (!room) return alert("Enter a room ID");
+  if (!room) return alert("Enter room");
 
   joinedRoom = room;
 
@@ -94,21 +93,22 @@ joinBtn.onclick = async () => {
         autoGainControl: true
       }
     });
-    localVideo.muted = true;
     localVideo.srcObject = localStream;
+    localVideo.muted = true;
     localVideo.play().catch(() => {});
-  } catch (err) {
-    alert("Camera/Mic Blocked: " + err.message);
+  } catch (e) {
+    alert("Camera/Mic blocked: " + e.message);
     joinedRoom = null;
     return;
   }
 
   socket.emit("join-room", room, username);
-  chat("Joined room: " + room);
+  chat("You joined room: " + room);
   joinBtn.style.display = "none";
   leaveBtn.style.display = "inline-block";
 };
 
+// SEND MESSAGE
 sendBtn.onclick = sendMessage;
 msgInput.onkeydown = e => (e.key === "Enter" ? sendMessage() : null);
 
@@ -120,6 +120,7 @@ function sendMessage() {
   msgInput.value = "";
 }
 
+// LEAVE ROOM
 leaveBtn.onclick = () => {
   cleanupPeer();
   if (localStream) {
@@ -130,6 +131,7 @@ leaveBtn.onclick = () => {
   location.reload();
 };
 
+// CREATE WEBRTC PEER
 async function createPeer(isOffer) {
   pc = new RTCPeerConnection(ICE_CONFIG);
 
@@ -137,6 +139,7 @@ async function createPeer(isOffer) {
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
   }
 
+  // Fix audio/video not sending on reconnect
   pc.getSenders().forEach(sender => {
     if (!sender.track && localStream) {
       localStream.getTracks().forEach(track => sender.replaceTrack(track));
@@ -145,13 +148,12 @@ async function createPeer(isOffer) {
 
   pc.ontrack = (e) => {
     remoteVideo.srcObject = e.streams[0];
-    remoteVideo.play().catch(() => {}); // ← Chrome Android autoplay fix
+    remoteVideo.play().catch(() => {}); // Chrome autoplay fix
   };
 
   pc.onicecandidate = (e) => {
-    if (e.candidate && remoteId) {
+    if (e.candidate && remoteId)
       socket.emit("ice-candidate", { to: remoteId, candidate: e.candidate });
-    }
   };
 
   pc.onnegotiationneeded = async () => {
@@ -161,10 +163,10 @@ async function createPeer(isOffer) {
     socket.emit("offer", { to: remoteId, sdp: pc.localDescription });
   };
 
+  // Auto reconnect if signal drops
   pc.onconnectionstatechange = () => {
-    if (["failed", "disconnected", "closed"].includes(pc.connectionState)) {
-      chat("Reconnecting video...");
-      setTimeout(() => createPeer(true), 600);
+    if (["failed", "disconnected"].includes(pc.connectionState)) {
+      setTimeout(() => createPeer(true), 500);
     }
   };
 
@@ -183,4 +185,4 @@ function cleanupPeer() {
   }
   remoteId = null;
   remoteVideo.srcObject = null;
-              }
+}
