@@ -1,55 +1,41 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>DROPLIE</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    body { font-family: Arial, Helvetica, sans-serif; text-align:center; margin:0; padding:20px; background:#f6f6f6; }
-    h1 { margin:10px 0 20px; }
-    #videos { display:flex; justify-content:center; gap:10px; margin-bottom:10px; }
-    video { width:320px; height:240px; background:#000; }
-    #localVideo { transform: scaleX(-1); } /* mirror local */
-    #controls { margin:10px 0; }
-    #messages { width: 700px; max-width:94%; height:160px; margin:10px auto; overflow-y:auto; border:1px solid #ccc; background:#fff; padding:8px; text-align:left; }
-    #chatRow { display:flex; justify-content:center; gap:8px; margin-top:8px; }
-    input[type=text], input[type=password] { padding:6px; font-size:14px; }
-    button { padding:6px 10px; font-size:14px; cursor:pointer; }
-    @media(max-width:760px){ video{ width:45vw; height:34vw; } #messages{width:94%} }
-  </style>
+  <meta charset="UTF-8">
+  <title>DROPLIE • Video Chat</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<div id="loginScreen">
   <h1>DROPLIE</h1>
+  <p>Enter username and password to begin</p>
+  <input type="text" id="usernameInput" placeholder="Username">
+  <input type="password" id="passwordInput" placeholder="Password">
+  <button id="loginBtn">Start</button>
+  <p id="loginError" class="errorMsg">❌ Incorrect password</p>
+</div>
 
-  <div id="login">
-    <form action="/login" method="POST" style="display:inline-block;">
-      <input name="username" placeholder="Random username (optional)" />
-      <input type="password" name="password" placeholder="Password" />
-      <button type="submit">Enter</button>
-    </form>
+<div id="mainScreen">
+  <div id="videoArea">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay muted playsinline></video>
   </div>
 
-  <div id="chatUI" style="display:none;">
-    <div id="videos">
-      <video id="localVideo" autoplay muted playsinline></video>
-      <video id="remoteVideo" autoplay playsinline></video>
-    </div>
+  <div id="controls">
+    <input type="text" id="roomInput" placeholder="Room ID">
+    <button id="joinBtn">Join</button>
+    <button id="leaveBtn">Leave</button>
+  </div>
 
-    <div id="controls">
-      <input id="roomInput" type="text" placeholder="Room ID (type same as friend)" />
-      <button id="joinBtn">Join Room</button>
-      <button id="leaveBtn" style="display:none">Leave</button>
-    </div>
-
+  <div id="chatSection">
     <div id="messages"></div>
-
-    <div id="chatRow">
-      <input id="msgInput" type="text" placeholder="Type a message" style="width:60%" />
-      <button id="sendBtn">Send</button>
-    </div>
+    <input type="text" id="msgInput" placeholder="Write a message">
+    <button id="sendBtn">Send</button>
   </div>
+</div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="script.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
