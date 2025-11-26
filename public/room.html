@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Join Room</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="center-page">
+<div class="login-box">
+  <h2>Enter Room ID</h2>
+  <input id="roomId" placeholder="Room ID">
+  <button onclick="join()">Join</button>
+</div>
+<script>
+function join() {
+  const room = document.getElementById("roomId").value;
+  const username = localStorage.getItem("username");
+  if (!room || !username) return;
+  window.location.href = `video.html?room=${room}`;
+}
+</script>
+</body>
+</html>
